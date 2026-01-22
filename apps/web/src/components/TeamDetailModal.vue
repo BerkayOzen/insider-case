@@ -1,29 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { getTeamById, updateTeam } from '../lib/api'
-
-type MatchSummary = {
-  id: number
-  week: number | null
-  isHome: boolean
-  opponent: { id: number; name: string } | null
-  homeScore: number | null
-  awayScore: number | null
-  isPlayed: boolean
-}
-
-type TeamDetail = {
-  id: number
-  seasonId: number
-  name: string
-  power: number
-  season: { id: number; name: string; currentWeek: number; isFinished: boolean } | null
-}
-
-type TeamDetailResponse = {
-  team: TeamDetail
-  matches: MatchSummary[]
-}
+import TeamService from '@/services/team-service'
+import type { TeamDetailResponse } from '@/types/team.type';
 
 const props = defineProps<{
   open: boolean
@@ -44,12 +22,14 @@ const editMode = ref(false)
 
 const team = computed(() => response.value?.team ?? null)
 
+const teamService = new TeamService();
+
 const loadTeam = async () => {
   if (!props.open || props.teamId === null) return
   loading.value = true
   error.value = ''
   try {
-    const res = await getTeamById(props.teamId)
+    const res = await teamService.getTeamById(props.teamId)
     response.value = res.data
     power.value = res.data.team.power
     editMode.value = false
@@ -65,7 +45,7 @@ const handleSave = async () => {
   saving.value = true
   error.value = ''
   try {
-    await updateTeam(team.value.id, { power: power.value })
+    await teamService.updateTeam(team.value.id,  power.value)
     editMode.value = false
     await loadTeam()
     emit('updated')

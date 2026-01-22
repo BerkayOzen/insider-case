@@ -1,8 +1,12 @@
 import { type AxiosRequestConfig } from 'axios';
-import axiosInstance from '@/plugins/axios';
+import axiosInstance from '../plugins/axios';
 
 type Config = AxiosRequestConfig & { skip?: boolean };
 const axios = axiosInstance;
+
+const apiBaseUrl =
+  (import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL ||
+  '/api';
 
 export default class Query {
   protected base: string;
@@ -10,7 +14,7 @@ export default class Query {
   public queries: string[];
   protected config: Config = { skip: false };
 
-  constructor(baseUrl: string = import.meta.env.VITE_API_BASE_URL, endpoint: string = '/') {
+  constructor(baseUrl: string = apiBaseUrl, endpoint: string = '/') {
     this.base = baseUrl;
     this.endpoint = endpoint;
     this.queries = [];

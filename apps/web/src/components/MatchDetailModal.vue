@@ -1,17 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { getMatchById, updateMatchResult } from '../lib/api'
-
-type MatchDetail = {
-  id: number
-  seasonId: number
-  week: { id: number; number: number; isPlayed: boolean } | null
-  homeTeam: { id: number; name: string } | null
-  awayTeam: { id: number; name: string } | null
-  homeScore: number | null
-  awayScore: number | null
-  isPlayed: boolean
-}
+import MatchService from '@/services/match-service';
+import type { MatchDetail } from '@/types/match.type';
 
 const props = defineProps<{
   open: boolean
@@ -31,6 +21,8 @@ const homeScore = ref<number | null>(null)
 const awayScore = ref<number | null>(null)
 const editMode = ref(false)
 
+const matchService = new MatchService();
+
 const title = computed(() => {
   if (!match.value) return 'Match'
   return `${match.value.homeTeam?.name ?? 'Home'} vs ${match.value.awayTeam?.name ?? 'Away'}`
@@ -41,7 +33,7 @@ const loadMatch = async () => {
   loading.value = true
   error.value = ''
   try {
-    const res = await getMatchById(props.matchId)
+    const res = await matchService.getMatchById(props.matchId)
     match.value = res.data
     homeScore.value = res.data.homeScore
     awayScore.value = res.data.awayScore
@@ -58,7 +50,7 @@ const handleSave = async () => {
   saving.value = true
   error.value = ''
   try {
-    await updateMatchResult(match.value.id, homeScore.value, awayScore.value)
+    await matchService.updateMatchResult(match.value.id, homeScore.value, awayScore.value)
     editMode.value = false
     await loadMatch()
     emit('updated')

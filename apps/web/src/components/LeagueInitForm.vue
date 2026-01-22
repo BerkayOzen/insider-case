@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { getDefaultTeams } from '../lib/api'
-import type { InitLeaguePayload, TeamInput } from '../services/league-service'
+import LeagueService from '../services/league-service'
+import TeamService from '@/services/team-service'
+import type { TeamInput } from '@/types/team.type'
+import type { InitLeaguePayload } from '@/types/league.type'
 
 const teams = ref<TeamInput[]>([])
 const loading = ref(false)
 const error = ref('')
+
+const leagueService = new LeagueService();
+const teamService = new TeamService();
 
 const emit = defineEmits<{
   (event: 'create', payload: InitLeaguePayload): void
@@ -15,7 +20,7 @@ const loadDefaults = async () => {
   loading.value = true
   error.value = ''
   try {
-    const response = await getDefaultTeams()
+    const response = await teamService.getDefaultTeams()
     teams.value = response.data.map((team: TeamInput) => ({
       name: team.name,
       power: team.power,

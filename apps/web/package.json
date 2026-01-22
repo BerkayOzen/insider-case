@@ -10,8 +10,6 @@
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
-    "test:unit": "vitest",
-    "test:e2e": "nightwatch tests/e2e/*",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
@@ -25,13 +23,11 @@
     "vue3-perfect-scrollbar": "^2.0.0"
   },
   "devDependencies": {
-    "@nightwatch/vue": "^3.1.2",
     "@tsconfig/node24": "^24.0.3",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^24.10.4",
     "@vitejs/plugin-vue": "^6.0.3",
     "@vitejs/plugin-vue-jsx": "^5.1.3",
-    "@vitest/eslint-plugin": "^1.6.5",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/test-utils": "^2.4.6",
@@ -42,15 +38,12 @@
     "geckodriver": "^6.1.0",
     "jiti": "^2.6.1",
     "jsdom": "^27.4.0",
-    "nightwatch": "^3.14.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "3.7.4",
     "ts-node": "^10.9.2",
     "typescript": "~5.9.3",
     "vite": "^7.3.0",
-    "vite-plugin-nightwatch": "^0.4.6",
     "vite-plugin-vue-devtools": "^8.0.5",
-    "vitest": "^4.0.16",
     "vue-tsc": "^3.2.2"
   }
 }

@@ -1,13 +1,5 @@
+import type { InitLeaguePayload } from '@/types/league.type';
 import Query from './query';
-
-export type TeamInput = {
-  name: string;
-  power: number;
-};
-
-export type InitLeaguePayload = {
-  teams: TeamInput[];
-};
 
 export default class LeagueService extends Query {
   constructor() {

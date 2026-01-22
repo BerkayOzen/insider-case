@@ -1,5 +1,12 @@
 {
   "files": [],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "types": ["vite/client"]
+  },
   "references": [
     {
       "path": "./tsconfig.node.json"
@@ -10,8 +17,5 @@
     {
       "path": "./tsconfig.vitest.json"
     },
-    {
-      "path": "./nightwatch/tsconfig.json"
-    }
   ]
 }
