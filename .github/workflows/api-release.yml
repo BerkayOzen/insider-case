@@ -1,6 +1,6 @@
-name: 1. Create a new Release
+name: Create a new API Release
 
-run-name: Create new ${{ inputs.version }} release
+run-name: Create new ${{ inputs.version }} api release
 
 on:
   workflow_dispatch:
@@ -37,7 +37,7 @@ jobs:
       - name: Get previous tag
         id: get_prev_tag
         run: |
-          prev_tag=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)
+          prev_tag=$(git tag --list 'api-v[0-9]*.[0-9]*.[0-9]*' | sed 's/api-//' | sort -V | tail -n 1)
           if [ -z "$prev_tag" ]; then
             prev_tag="v0.0.0"
           fi
@@ -68,7 +68,7 @@ jobs:
             exit 1
           fi
 
-          new_tag="v${major}.${minor}.${patch}"
+          new_tag="api-v${major}.${minor}.${patch}"
           echo "new_tag=${new_tag}" >> $GITHUB_OUTPUT
 
           git tag "$new_tag"
@@ -95,7 +95,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.bump_version.outputs.new_tag }}
-          release_name: Release ${{ steps.bump_version.outputs.new_tag }}
+          release_name: API Release ${{ steps.bump_version.outputs.new_tag }}
           body: |
             ## What's Changed
 

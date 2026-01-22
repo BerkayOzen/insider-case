@@ -1,23 +1,120 @@
-name: Web Release
+name: Create a new Web Release
+
+run-name: Create new ${{ inputs.version }} web release
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/web/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version name'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
 
-permissions:
-  contents: write
+env:
+  REPO_URL: 'https://github.com/${{ github.repository }}'
 
 jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      prev_tag: ${{ steps.get_prev_tag.outputs.prev_tag }}
+      new_tag: ${{ steps.bump_version.outputs.new_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get prev tag
+        id: get_prev_tag
+        run: |
+          prev_tag=$(git tag --list 'web-v[0-9]*.[0-9]*.[0-9]*' | sed 's/web-//' | sort -V | tail -n 1)
+          if [ -z "$prev_tag" ]; then
+            prev_tag="v0.0.0"
+          fi
+          echo "prev_tag=${prev_tag}" >> $GITHUB_OUTPUT
+
+      - name: Bump version and create new tag
+        id: bump_version
+        run: |
+          latest_tag=${{ steps.get_prev_tag.outputs.prev_tag }}
+          version=${latest_tag//v/}
+          IFS='.' read -r -a version_parts <<< "$version"
+          major=${version_parts[0]}
+          minor=${version_parts[1]}
+          patch=${version_parts[2]}
+
+          bump_type="${{ github.event.inputs.version }}"
+          if [ "$bump_type" = "major" ]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif [ "$bump_type" = "minor" ]; then
+            minor=$((minor + 1))
+            patch=0
+          elif [ "$bump_type" = "patch" ]; then
+            patch=$((patch + 1))
+          else
+            echo "Invalid version bump type: $bump_type"
+            exit 1
+          fi
+
+          new_tag="web-v${major}.${minor}.${patch}"
+          echo "new_tag=${new_tag}" >> $GITHUB_OUTPUT
+
+      - name: Create and push new tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          new_tag=${{ steps.bump_version.outputs.new_tag }}
+          git tag $new_tag
+          git push origin $new_tag
+
   create-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: [create-tag]
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Generate changelog
+        id: generate_changelog
+        run: |
+          prev_tag=${{ needs.create-tag.outputs.prev_tag }}
+          new_tag=${{ needs.create-tag.outputs.new_tag }}
+
+          if [ -z "$prev_tag" ]; then
+            prev_tag=$(git rev-list --max-parents=0 HEAD)
+          fi
+
+          changelog=$(git log ${prev_tag}..HEAD --pretty=format:"* %s by %aN")
+          echo "changelog=${changelog}" >> $GITHUB_OUTPUT
 
       - name: Create release
+        uses: actions/create-release@v1
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="web-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" --title "Web Release $TAG" --notes "Automated web release for $GITHUB_SHA."
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.create-tag.outputs.new_tag }}
+          release_name: Web Release ${{ needs.create-tag.outputs.new_tag }}
+          body: |
+            ## What's Changed
+
+            ${{ steps.generate_changelog.outputs.changelog }}
+
+            > Full Changelog: ${{ env.REPO_URL }}/compare/${{ needs.create-tag.outputs.prev_tag }}...${{ needs.create-tag.outputs.new_tag }}
+          draft: false
+          prerelease: false
