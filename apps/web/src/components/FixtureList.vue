@@ -1,23 +1,5 @@
 <script setup lang="ts">
-type Match = {
-  id: number
-  homeTeamId: number
-  awayTeamId: number
-  homeScore: number | null
-  awayScore: number | null
-  isPlayed: boolean
-  homeTeam?: { id: number; name: string } | null
-  awayTeam?: { id: number; name: string } | null
-}
-
-type Week = {
-  id: number
-  number: number
-  isPlayed: boolean
-  byeTeams: { id: number; name: string }[]
-  matches: Match[]
-}
-
+import type { Week } from '@/types/league.type';
 defineProps<{
   fixtures: Week[]
 }>()
