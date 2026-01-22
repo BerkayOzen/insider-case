@@ -1,0 +1,23 @@
+name: API Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="api-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" --title "API Release $TAG" --notes "Automated API release for $GITHUB_SHA."

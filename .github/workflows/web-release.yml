@@ -1,0 +1,23 @@
+name: Web Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="web-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" --title "Web Release $TAG" --notes "Automated web release for $GITHUB_SHA."
