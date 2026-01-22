@@ -12,15 +12,21 @@ jobs:
   deploy:
     if: startsWith(github.event.release.tag_name, 'web-')
     runs-on: ubuntu-latest
+    env:
+      VARS_JSON: ${{ toJSON(vars) }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.release.tag_name }}
+      
+      - name: Setting Github env vars to environment variable
+        run: |
+          echo "$VARS_JSON" | jq -r 'keys[] as $k | "\($k)=\(.[$k])"' > .env
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: apps/web/package-lock.json
 
@@ -46,7 +52,6 @@ jobs:
           aws s3 sync dist s3://$S3_BUCKET --delete
 
       - name: Invalidate CloudFront (optional)
-        if: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID != '' }}
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           DISTRIBUTION_ID: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }}
