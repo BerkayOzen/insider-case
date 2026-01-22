@@ -1,10 +1,19 @@
-name: API Release
+name: 1. Create a new Release
+
+run-name: Create new ${{ inputs.version }} release
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/api/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version name"
+        required: true
+        default: "minor"
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
 
 permissions:
   contents: write
@@ -14,10 +23,84 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get previous tag
+        id: get_prev_tag
+        run: |
+          prev_tag=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)
+          if [ -z "$prev_tag" ]; then
+            prev_tag="v0.0.0"
+          fi
+          echo "prev_tag=${prev_tag}" >> $GITHUB_OUTPUT
+
+      - name: Bump version and create tag
+        id: bump_version
+        run: |
+          latest_tag=${{ steps.get_prev_tag.outputs.prev_tag }}
+          version=${latest_tag//v/}
+          IFS='.' read -r -a version_parts <<< "$version"
+          major=${version_parts[0]}
+          minor=${version_parts[1]}
+          patch=${version_parts[2]}
+
+          bump_type="${{ github.event.inputs.version }}"
+          if [ "$bump_type" = "major" ]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif [ "$bump_type" = "minor" ]; then
+            minor=$((minor + 1))
+            patch=0
+          elif [ "$bump_type" = "patch" ]; then
+            patch=$((patch + 1))
+          else
+            echo "Invalid version bump type: $bump_type"
+            exit 1
+          fi
+
+          new_tag="v${major}.${minor}.${patch}"
+          echo "new_tag=${new_tag}" >> $GITHUB_OUTPUT
+
+          git tag "$new_tag"
+          git push origin "$new_tag"
+
+      - name: Generate changelog
+        id: generate_changelog
+        run: |
+          prev_tag=${{ steps.get_prev_tag.outputs.prev_tag }}
+          new_tag=${{ steps.bump_version.outputs.new_tag }}
+
+          if [ -z "$prev_tag" ]; then
+            prev_tag=$(git rev-list --max-parents=0 HEAD)
+          fi
+
+          changelog=$(git log ${prev_tag}..HEAD --pretty=format:"* %s by %aN" | grep -v "^* Merge pull" | grep -v "^* Merge branch")
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$changelog" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create release
+        uses: actions/create-release@v1
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="api-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" --title "API Release $TAG" --notes "Automated API release for $GITHUB_SHA."
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.bump_version.outputs.new_tag }}
+          release_name: Release ${{ steps.bump_version.outputs.new_tag }}
+          body: |
+            ## What's Changed
+
+            ${{ steps.generate_changelog.outputs.changelog }}
+
+            > Full Changelog: https://github.com/${{ github.repository }}/compare/${{ steps.get_prev_tag.outputs.prev_tag }}...${{ steps.bump_version.outputs.new_tag }}
+          draft: false
+          prerelease: false
